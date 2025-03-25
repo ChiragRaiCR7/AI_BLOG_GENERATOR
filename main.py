@@ -255,7 +255,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center">
-        <p>🚀 Powered by Gemini AI & SERP API | 📧 Support: hr-blog-support@example.com</p>
+        <p>🚀 Powered by Gemini AI & SERP API | 📧 Support: chiragraicr7@gmail.com</p>
         <p>⚠️ Generated content should be reviewed before publication</p>
     </div>
     """, unsafe_allow_html=True)
