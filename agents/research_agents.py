@@ -2,7 +2,7 @@ import os
 import random
 import logging
 from dotenv import load_dotenv
-from serpapi import GoogleSearch
+from serpapi.google_search import GoogleSearch
 import google.generativeai as genai
 from typing import Union, List, Dict, Any
 
