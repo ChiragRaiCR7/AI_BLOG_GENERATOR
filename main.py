@@ -163,6 +163,8 @@ def render_download_options(selected_topic: str, content: Dict[str, Any]):
                     content.get("content", ""), 
                     selected_topic
                 )
+                # Ensure output directory exists
+                os.makedirs(BLOG_CONTENT_DIR, exist_ok=True)
                 html_path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.html")
                 with open(html_path, "w", encoding="utf-8") as f:
                     f.write(html_content)
