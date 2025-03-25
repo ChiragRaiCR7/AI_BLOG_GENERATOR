@@ -1,13 +1,22 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
+### Development Environments ###
+.env                   # Environment variables
+.venv/                 # Virtual environment
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.env.local
+.env.*.local
+
+### Python Specific ###
+__pycache__/           # Byte-compiled files
 *.py[cod]
 *$py.class
+*.so                    # C extensions
+.python-version         # pyenv
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
+### Build/Distribution ###
 build/
 develop-eggs/
 dist/
@@ -25,16 +34,15 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+Pipfile.lock           # pipenv
+poetry.lock            # poetry
+pdm.lock               # pdm
+.pdm.toml
+.pdm-python
+.pdm-build/
+__pypackages__/        # PEP 582
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
+### Testing/Quality ###
 htmlcov/
 .tox/
 .nox/
@@ -48,116 +56,54 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+.mypy_cache/           # mypy
+.dmypy.json
+dmypy.json
+.pyre/                 # Pyre
+.pytype/               # pytype
 
-# Translations
-*.mo
-*.pot
+### Editors/IDEs ###
+.idea/                 # PyCharm
+.vscode/               # VS Code
+.spyderproject         # Spyder
+.spyproject
+.ropeproject
 
-# Django stuff
+### Documentation ###
+docs/_build/
+site/                  # mkdocs
+
+### Framework Specific ###
+# Django
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Flask stuff
+# Flask
 instance/
 .webassets-cache
 
-# Scrapy stuff
+# Scrapy
 .scrapy
 
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# UV
-uv.lock
-
-# poetry
-poetry.lock
-
-# pdm
-pdm.lock
-.pdm.toml
-.pdm-python
-.pdm-build/
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
+# Celery
 celerybeat-schedule
 celerybeat.pid
 
-# SageMath parsed files
-*.sage.py
+### Notebooks ###
+.ipynb_checkpoints
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+### System Files ###
+.DS_Store
+Thumbs.db
 
-# Spyder project settings
-.spyderproject
-.spyproject
+### Output Directories ###
+output/                # Your blog output directory
+.streamlit/            # Streamlit cache & config
 
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-.idea/
-
-# Ruff linting cache
-.ruff_cache/
-
-# PyPI configuration file
-.pypirc
-
-# Streamlit cache & config
-.streamlit/
-
-# Output directory for generated blog files
-output/
-
-# VS Code settings
-.vscode/
-
-# Docker (if using Docker for deployment)
-.dockerignore
+### Configuration Files ###
+.pypirc                # PyPI config
+.ruff_cache/           # Ruff linting
+*.spec                 # PyInstaller
+*.manifest
