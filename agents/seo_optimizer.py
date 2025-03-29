@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from typing import Dict, Optional, List, Any
 import json
 import logging
+from collections import Counter
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +45,6 @@ class SEOAgent:
 
         # Generate SEO-optimized content
         optimization_result = self._perform_optimization(model, content, keywords)
-
         # Validate optimization response
         if "error" in optimization_result:
             logging.error("Optimization failed: %s", optimization_result["error"])
@@ -51,7 +52,7 @@ class SEOAgent:
 
         # Analyze SEO quality
         analysis_result = self._analyze_seo(model, optimization_result["optimized_content"])
-
+        # Calculate SEO score
         return {
             **optimization_result,
             "seo_analysis": analysis_result

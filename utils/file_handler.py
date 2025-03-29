@@ -1,22 +1,24 @@
 import os
 import re
-import markdown
 from typing import Dict, List
 from datetime import datetime
 from xhtml2pdf import pisa
-from io import StringIO, BytesIO
+from io import BytesIO
 import textwrap
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
 class FileHandler:
     @staticmethod
-    def save_blog(content: str, title: str, formats: List[str] = ["md", "html", "pdf", "txt"]) -> Dict[str, str]:
+    def save_blog(content: str, title: str, formats: List[str] = ["html", "pdf", "txt"]) -> Dict[str, str]:
         """
-        Save blog content in multiple professional formats.
+        Save blog content in professional formats (HTML, PDF, TXT)
         
         Args:
-            content: Markdown formatted content
+            content: Clean formatted content (no markdown)
             title: Blog title
-            formats: List of output formats
+            formats: List of output formats (html, pdf, txt)
             
         Returns:
             Dictionary of saved file paths
@@ -25,15 +27,7 @@ class FileHandler:
         safe_title = FileHandler._sanitize_filename(title)
         results = {}
         
-        # Enhanced Markdown version
-        if "md" in formats:
-            md_content = FileHandler._format_markdown(content, title)
-            results["md"] = FileHandler._save_file(
-                f"output/{safe_title}.md",
-                md_content
-            )
-        
-        # Professional HTML version
+        # HTML version
         if "html" in formats:
             html_content = FileHandler._convert_to_html(content, title)
             results["html"] = FileHandler._save_file(
@@ -41,13 +35,13 @@ class FileHandler:
                 html_content
             )
         
-        # Print-quality PDF
+        # PDF version
         if "pdf" in formats:
             pdf_path = FileHandler._generate_pdf(content, title, safe_title)
             if pdf_path:
                 results["pdf"] = pdf_path
         
-        # Clean text version
+        # Text version
         if "txt" in formats:
             txt_content = FileHandler._convert_to_text(content, title)
             results["txt"] = FileHandler._save_file(
@@ -64,25 +58,17 @@ class FileHandler:
         return re.sub(r'[\s-]+', '-', clean).lower()[:60].strip('-')
 
     @staticmethod
-    def _format_markdown(content: str, title: str) -> str:
-        """Enhances markdown with front matter and formatting"""
-        return textwrap.dedent(f"""\
-        ---
-        title: {title}
-        date: {datetime.now().strftime('%Y-%m-%d')}
-        ---
-        
-        # {title}
-        
-        {content}
-        """)
-
-    @staticmethod
     def _convert_to_html(content: str, title: str) -> str:
-        """Converts markdown to professional HTML with complete document structure"""
-        # Enhanced CSS with responsive design and print styles
+        """Converts clean content to professional HTML"""
+        # Process paragraphs
+        paragraphs = []
+        for para in content.split('\n\n'):
+            if para.strip():
+                paragraphs.append(f"<p>{para.strip()}</p>")
+        
+        # Enhanced CSS
         css = textwrap.dedent("""
-          <style>
+        <style>
             body { 
                 font-family: 'Segoe UI', Roboto, sans-serif;
                 line-height: 1.8;
@@ -96,38 +82,23 @@ class FileHandler:
                 border-bottom: 2px solid #eee;
                 padding-bottom: 0.5rem;
             }
-            h2 { color: #3498db; }
-            pre {
-                background: #f8f9fa;
-                padding: 1rem;
-                border-radius: 4px;
-                overflow-x: auto;
+            h2 { 
+                color: #3498db;
+                margin-top: 2rem;
             }
-            blockquote {
-                border-left: 4px solid #3498db;
-                padding-left: 1rem;
-                color: #666;
+            p {
+                margin-bottom: 1.5rem;
             }
         </style>
         """)
 
-        # Convert markdown to HTML with extensions
-        html_content = markdown.markdown(content, extensions=[
-            'fenced_code',
-            'tables',
-            'footnotes',
-            'toc',
-            'md_in_html'
-        ])
-
-        # Complete HTML document
         return textwrap.dedent(f"""\
         <!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta name="description" content="{title} - Professional HR Blog Article">
+            <meta name="description" content="{title}">
             <title>{title}</title>
             {css}
         </head>
@@ -137,7 +108,7 @@ class FileHandler:
                     <h1>{title}</h1>
                     <p class="meta">Published: {datetime.now().strftime('%B %d, %Y')}</p>
                 </header>
-                {html_content}
+                {"".join(paragraphs)}
                 <footer>
                     <p>© {datetime.now().year} HR Insights Blog. All rights reserved.</p>
                 </footer>
@@ -145,36 +116,32 @@ class FileHandler:
         </body>
         </html>
         """)
+
     @staticmethod
     def _generate_pdf(content: str, title: str, filename: str) -> str:
-        """Generates print-quality PDF"""
+        """Generates print-quality PDF from clean content"""
         try:
-            from reportlab.lib.pagesizes import letter
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.lib.units import inch
-            
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=letter,
-                                rightMargin=72, leftMargin=72,
-                                topMargin=72, bottomMargin=72)
+                                  rightMargin=72, leftMargin=72,
+                                  topMargin=72, bottomMargin=72)
             
             styles = getSampleStyleSheet()
             Story = []
             
             # Add title
             Story.append(Paragraph(title, styles['Title']))
-            Story.append(Spacer(1, 12))
+            Story.append(Spacer(1, 24))
             
-            # Convert markdown to PDF paragraphs
-            for line in content.split('\n'):
-                if line.startswith('# '):
-                    Story.append(Paragraph(line[2:], styles['Heading1']))
-                elif line.startswith('## '):
-                    Story.append(Paragraph(line[3:], styles['Heading2']))
-                elif line.strip():
-                    Story.append(Paragraph(line, styles['BodyText']))
-                Story.append(Spacer(1, 12))
+            # Process content
+            for para in content.split('\n\n'):
+                if para.strip():
+                    # Detect headings (assuming they're on their own line)
+                    if '\n' not in para and para.endswith(':'):
+                        Story.append(Paragraph(para, styles['Heading2']))
+                    else:
+                        Story.append(Paragraph(para, styles['BodyText']))
+                    Story.append(Spacer(1, 12))
             
             doc.build(Story)
             path = f"output/{filename}.pdf"
@@ -187,12 +154,8 @@ class FileHandler:
 
     @staticmethod
     def _convert_to_text(content: str, title: str) -> str:
-        """Creates a clean text version with formatting"""
-        # Remove markdown syntax
-        content = re.sub(r'#+\s*', '', content)  # Headers
-        content = re.sub(r'\*{1,2}(.*?)\*{1,2}', r'\1', content)  # Bold/italic
-        content = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', content)  # Links
-        
+        """Creates a clean text version"""
+        # Format title and content
         return f"{title}\n{'=' * len(title)}\n\n{content}"
 
     @staticmethod

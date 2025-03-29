@@ -19,10 +19,12 @@ def fetch_trending_hr_topics() -> List[str]:
     return ResearchAgent().get_trending_topics()
 
 class ResearchAgent:
-    def __init__(self):
+    def __init__(self, max_retries=3, retry_delay=2):
         load_dotenv()
         self.SERPAPI_KEY = os.getenv("SERPAPI_KEY")
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+        self.max_retries = max_retries  # Add this line
+        self.retry_delay = retry_delay  # Add this line
         self.HR_QUERIES = [
             "HR Trends in 2025",
             "Future of Work updates",

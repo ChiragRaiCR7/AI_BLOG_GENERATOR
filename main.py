@@ -5,21 +5,19 @@ import streamlit as st
 import logging
 from typing import Optional, Dict, Any
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer  # Added Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+from utils.file_handler import FileHandler
 
 # Importing Agents
 from agents.research_agents import ResearchAgent, fetch_trending_hr_topics
 from agents.content_planner import generate_blog_outline
 from agents.content_generator import generate_blog_content
-from agents.seo_optimizer import optimize_seo
-from agents.review_agent import review_blog
-from utils.file_handler import FileHandler
 
 # Constants
 MAX_TITLE_LENGTH = 60
 BLOG_CONTENT_DIR = "output"
-SUPPORTED_FORMATS = ["md", "html", "txt", "pdf"]
+SUPPORTED_FORMATS = ["html", "txt", "pdf"]  # Removed markdown
 
 # Logging Configuration
 logging.basicConfig(
@@ -37,15 +35,28 @@ def initialize_session_state():
         st.session_state["saved_files"] = {}
 
 def save_blog_as_pdf(title: str, content: str, file_path: str) -> Optional[str]:
-    """Saves blog content as a formatted PDF with error handling"""
+    """Enhanced PDF saving with better formatting"""
     try:
-        doc = SimpleDocTemplate(file_path, pagesize=letter)
+        doc = SimpleDocTemplate(file_path, pagesize=letter,
+                              rightMargin=72, leftMargin=72,
+                              topMargin=72, bottomMargin=72)
         styles = getSampleStyleSheet()
-        story = [Paragraph(title, styles["Title"])]
-
+        
+        # Add title with styling
+        title_para = Paragraph(title, styles["Title"])
+        
+        # Process content with better formatting
+        story = [title_para]
         for paragraph in content.split("\n"):
             if paragraph.strip():
-                story.append(Paragraph(paragraph, styles["BodyText"]))
+                # Handle headings
+                if paragraph.startswith("# "):
+                    story.append(Paragraph(paragraph[2:], styles["Heading1"]))
+                elif paragraph.startswith("## "):
+                    story.append(Paragraph(paragraph[3:], styles["Heading2"]))
+                else:
+                    story.append(Paragraph(paragraph, styles["BodyText"]))
+                story.append(Spacer(1, 12))  # Add space between paragraphs
 
         doc.build(story)
         return file_path
@@ -58,34 +69,6 @@ def sanitize_title(title: str) -> str:
     """Sanitize and truncate title for filenames"""
     clean_title = re.sub(r'[^a-zA-Z0-9_-]', '', title.replace(" ", "_").lower())
     return clean_title[:MAX_TITLE_LENGTH] or "untitled_blog"
-
-def save_blog_post(title: str, content: str, *formats: str) -> Dict[str, str]:
-    """Save blog content in multiple formats with error handling"""
-    saved_files = {}
-    safe_title = sanitize_title(title)
-    os.makedirs(BLOG_CONTENT_DIR, exist_ok=True)
-
-    for fmt in formats:
-        try:
-            if fmt == "md":
-                path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.md")
-                with open(path, "w", encoding="utf-8") as f:
-                    f.write(f"# {title}\n\n{content}")
-                saved_files["md"] = path
-            elif fmt == "html":
-                path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.html")
-                FileHandler.save_blog(content, title, ["html"])
-                saved_files["html"] = path
-            elif fmt == "txt":
-                path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.txt")
-                with open(path, "w", encoding="utf-8") as f:
-                    f.write(f"{title}\n\n{content}")
-                saved_files["txt"] = path
-        except Exception as e:
-            logging.error(f"Error saving {fmt} file: {str(e)}")
-            saved_files[fmt] = f"Error saving {fmt} format"
-
-    return saved_files
 
 @st.cache_data
 def generate_blog(selected_topic: str) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
@@ -110,6 +93,7 @@ def generate_blog(selected_topic: str) -> tuple[Optional[Dict[str, Any]], Option
         
     except Exception as e:
         return None, f"Unexpected error: {str(e)}"
+
 def render_topic_selection() -> Optional[str]:
     """Render topic selection UI and return selected topic"""
     topic_option = st.radio(
@@ -137,99 +121,86 @@ def render_topic_selection() -> Optional[str]:
         )
 
 def render_blog_preview(content: Dict[str, Any]):
-    """Render blog preview section"""
-    with st.expander("📖 Blog Preview", expanded=True):
-        if isinstance(content, dict):
+    """Enhanced blog preview section"""
+    st.subheader("Blog Preview")
+    if isinstance(content, dict):
+        with st.container(border=True):
             st.markdown(content.get("content", ""), unsafe_allow_html=True)
-        else:
+    else:
+        with st.container(border=True):
             st.markdown(content, unsafe_allow_html=True)
 
 def render_download_options(selected_topic: str, content: Dict[str, Any]):
-    """Render download options UI with proper file handling"""
-    with st.expander("💾 Download Options", expanded=True):
-        selected_formats = st.multiselect(
-            "Select formats to download:",
-            ["HTML", "Markdown", "PDF", "Text"],
-            default=["HTML", "PDF"]
-        )
-        
-        if st.button("💾 Generate Download Files"):
-            safe_title = sanitize_title(selected_topic)
-            saved_files = {}
-            
-            # Generate files
-            if "HTML" in selected_formats:
-                html_content = FileHandler._convert_to_html(
-                    content.get("content", ""), 
-                    selected_topic
-                )
-                # Ensure output directory exists
+    """Simplified download options without markdown"""
+    st.subheader("Download Options")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📄 Generate HTML"):
+            with st.spinner("Generating HTML file..."):
+                safe_title = sanitize_title(selected_topic)
                 os.makedirs(BLOG_CONTENT_DIR, exist_ok=True)
                 html_path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.html")
+                html_content = FileHandler._convert_to_html(content.get("content", ""), selected_topic)
                 with open(html_path, "w", encoding="utf-8") as f:
                     f.write(html_content)
-                saved_files["HTML"] = html_path
-            
-            if "Markdown" in selected_formats:
-                md_path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.md")
-                with open(md_path, "w", encoding="utf-8") as f:
-                    f.write(content.get("content", ""))
-                saved_files["Markdown"] = md_path
-                
-            if "PDF" in selected_formats:
-                pdf_path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.pdf")
-                pdf_file = save_blog_as_pdf(
-                    selected_topic, 
-                    content.get("content", ""), 
-                    pdf_path
-                )
-                if pdf_file:
-                    saved_files["PDF"] = pdf_path
-            
-            if "Text" in selected_formats:
+                with open(html_path, "rb") as f:
+                    st.download_button(
+                        label="Download HTML",
+                        data=f,
+                        file_name=f"{safe_title}.html",
+                        mime="text/html"
+                    )
+    
+    with col2:
+        if st.button("📝 Generate Text"):
+            with st.spinner("Generating Text file..."):
+                safe_title = sanitize_title(selected_topic)
+                os.makedirs(BLOG_CONTENT_DIR, exist_ok=True)
                 txt_path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.txt")
                 with open(txt_path, "w", encoding="utf-8") as f:
                     f.write(content.get("content", ""))
-                saved_files["Text"] = txt_path
-            
-            # Create download buttons
-            if saved_files:
-                st.session_state["saved_files"] = saved_files
-                st.success(f"✅ Files generated successfully!")
-                
-                for file_type, path in saved_files.items():
-                    try:
-                        with open(path, "rb") as f:
-                            st.download_button(
-                                label=f"Download {file_type}",
-                                data=f,
-                                file_name=os.path.basename(path),
-                                mime={
-                                    "HTML": "text/html",
-                                    "PDF": "application/pdf",
-                                    "Markdown": "text/markdown",
-                                    "Text": "text/plain"
-                                }[file_type]
-                            )
-                    except FileNotFoundError:
-                        st.error(f"File not found: {path}")
-            else:
-                st.error("❌ No files were generated")
+                with open(txt_path, "rb") as f:
+                    st.download_button(
+                        label="Download Text",
+                        data=f,
+                        file_name=f"{safe_title}.txt",
+                        mime="text/plain"
+                    )
+    
+    with col3:
+        if st.button("📑 Generate PDF"):
+            with st.spinner("Generating PDF file..."):
+                safe_title = sanitize_title(selected_topic)
+                os.makedirs(BLOG_CONTENT_DIR, exist_ok=True)
+                pdf_path = os.path.join(BLOG_CONTENT_DIR, f"{safe_title}.pdf")
+                pdf_file = save_blog_as_pdf(selected_topic, content.get("content", ""), pdf_path)
+                if pdf_file:
+                    with open(pdf_path, "rb") as f:
+                        st.download_button(
+                            label="Download PDF",
+                            data=f,
+                            file_name=f"{safe_title}.pdf",
+                            mime="application/pdf"
+                        )
+
 def main():
     """Main application entry point"""
     st.set_page_config(
-        page_title="AI-Powered SEO Blog Generator",
-        layout="wide",
+        page_title="AI-Powered Blog Generator",
+        layout="centered",
+        initial_sidebar_state="collapsed",
         menu_items={
-            'Get Help': 'https://example.com/help',
-            'Report a bug': "https://example.com/bug",
+            'Get Help': 'https://docs.google.com/forms/d/e/1FAIpQLSeYsnsCJubpr8papfv2r2lcYqo1wsVZcEZhR4pKHB8nOPIAHw/viewform?usp=header',
+            'Report a bug': "https://docs.google.com/forms/d/e/1FAIpQLSeYsnsCJubpr8papfv2r2lcYqo1wsVZcEZhR4pKHB8nOPIAHw/viewform?usp=header",
             'About': "# HR Blog Generator v1.0"
         }
     )
     
     initialize_session_state()
     
-    st.title("📝 AI-Powered SEO Blog Generator")
+    st.title("📝 AI-Powered Blog Generator")
     st.markdown("Generate **SEO-optimized HR blogs** using AI-powered research and content generation.")
 
     # Step 1: Topic Selection
