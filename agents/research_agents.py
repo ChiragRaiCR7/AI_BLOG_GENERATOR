@@ -1,6 +1,7 @@
 import os
 import random
 import logging
+import time
 from dotenv import load_dotenv
 from serpapi.google_search import GoogleSearch
 import google.generativeai as genai
@@ -8,6 +9,7 @@ from typing import Union, List, Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def fetch_trending_hr_topics() -> List[str]:
     """
@@ -40,26 +42,29 @@ class ResearchAgent:
 
     def research_topic(self, topic: str) -> Union[Dict[str, Any], str]:
         """Returns detailed research data for a specific HR topic with proper error handling"""
-        try:
-            search_results = self._search_topic(topic)
-            gemini_insights = self._get_gemini_insights(topic)
-            stats = self._get_topic_stats(topic)
+        if not topic or not isinstance(topic, str):
+            return {"error": "Invalid topic provided", "status": "failed"}
+        for attempt in range(self.max_retries):
+            try:
+                search_results = self._search_topic(topic)
+                gemini_insights = self._get_gemini_insights(topic)
+                stats = self._get_topic_stats(topic)
             
-            return {
-                'topic': topic,
-                'search_results': search_results,
-                'key_insights': gemini_insights,
-                'stats': stats,
-                'status': 'success'
-            }
-        except Exception as e:
-            error_msg = f"Research error: {str(e)}"
-            logging.error(error_msg)
-            return {
-                'error': error_msg,
-                'status': 'failed'
-            }
-
+                return {
+                    'topic': topic,
+                    'search_results': search_results,
+                    'key_insights': gemini_insights,
+                    'stats': stats,
+                    'status': 'success'
+                }
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt == self.max_retries - 1:
+                    return {
+                        'error': f"Research failed after {self.max_retries} attempts: {str(e)}",
+                        'status': 'failed'
+                    }
+                time.sleep(self.retry_delay)
     def _fetch_trending_hr_topics(self) -> List[str]:
         """Internal method combining both research approaches"""
         topics = self._fetch_from_google_trends()
