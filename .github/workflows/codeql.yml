@@ -1,0 +1,54 @@
+name: "Python Code Security & Quality Analysis"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '39 4 * * 4'  # Weekly scan on Thursdays at 04:39 UTC
+
+jobs:
+  analyze:
+    name: Python Code Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Python environment setup
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        cache: 'pip'  # Enable dependency caching
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    # Enhanced CodeQL initialization for Python projects
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: python
+        queries: security-extended,security-and-quality
+        config-file: .github/codeql/python-config.yml  # Custom config file path
+
+    # Database creation with dependency awareness
+    - name: Build Python CodeQL database
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "python/security"
+        upload-results: true
+        output: codeql-results.sarif
