@@ -34,14 +34,14 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    # Simplified CodeQL initialization without custom config
+    # CodeQL initialization - REMOVED config-file reference
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: python
         queries: security-extended,security-and-quality
 
-    # Database creation with dependency awareness
+    # Database creation
     - name: Build Python CodeQL database
       uses: github/codeql-action/autobuild@v3
 
