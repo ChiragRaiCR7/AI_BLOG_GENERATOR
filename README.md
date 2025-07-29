@@ -107,9 +107,9 @@ This project is licensed under the **MIT License**.
 ---
 
 ## 📞 Contact
-👤 Your Name  
-📧 your-email@example.com  
-🔗 [GitHub](https://github.com/yourusername)  
+👤 Chirag Rai  
+📧 chiragraiwork@gmail.com  
+🔗 [GitHub]([https://github.com/](https://github.com/ChiragRaiCR7))  
 
 ---
 
